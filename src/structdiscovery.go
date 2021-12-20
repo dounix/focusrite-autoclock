@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/xml"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -21,6 +24,10 @@ func main() {
 func discoverTcpService() string {
 	const DiscoveryService = "localhost:30096"
 	const DiscoveryTag = "server-announcement"
+
+	type Response struct {
+	}
+
 	type Serveraccouncement struct {
 		XMLName  xml.Name `xml:DiscoveryTag`
 		Port     string   `xml:"port,attr"`
@@ -99,23 +106,69 @@ func connectTcp() {
 		os.Exit(1)
 	}
 
-	reply := make([]byte, 4096)
+	reply := make([]byte, 7)
 	_, err = conn.Read(reply)
 	if err != nil {
 		println("Read from server failed:", err.Error())
 		os.Exit(1)
 	}
+	if string(reply[:]) == "Length=" {
+		length := make([]byte, 6)
+		_, err = conn.Read(length)
+		if err != nil {
+			println("Read length from server failed:", err.Error())
+			os.Exit(1)
+		}
+		log.Println("Length= was matched")
+		blength, err := hex.DecodeString("00" + string(length))
+		if err != nil {
+			println("hex decode failed:", err.Error())
+			os.Exit(1)
+		}
+		//	var blength2 = new(int64) + blength
+		blength2 := binary.BigEndian.Uint32(blength)
 
-	reply2 := make([]byte, 32768)
-	_, err = conn.Read(reply2)
-	if err != nil {
-		println("Read from server failed:", err.Error())
-		os.Exit(1)
+		log.Printf("length in string is %s", length)
+		log.Printf("length in hex is %+v", length)
+		log.Printf("blength in hex is %+v", blength)
+		log.Printf("blength2 is is %d", blength2)
+		log.Printf("type of blength %s\n", reflect.TypeOf(blength))
+
+		// payload := make([]byte, blength[2]+1) //why do I have to add one, because it's a buffer size, and not an offset..  how to cast 3 []bytes into int32
+
+		payload := make([]byte, blength2+1) //why do I have to add one, because it's a buffer size, and not an offset..  how to cast 3 []bytes into int32
+		_, err = conn.Read(payload)
+		if err != nil {
+			println("Read length failed:", err.Error())
+			os.Exit(1)
+		}
+
+		println("payload: ", string(payload))
+
+		// println("length bytes", string(length))
+		// println("length bytes2", string(blength))
+
+		// reply2 := make([]byte, int(4096))
+		// _, err = conn.Read(reply2)
+		// if err != nil {
+		// 	println("Read from server failed:", err.Error())
+		// 	os.Exit(1)
+		// }
+
+		// println("reply from server length", string(reply2))
+
 	}
 
-	println("reply from server=", string(reply))
+	// reply2 := make([]byte, int(blength))
+	// _, err = conn.Read(reply2)
+	// if err != nil {
+	// 	println("Read from server failed:", err.Error())
+	// 	os.Exit(1)
+	// }
 
-	println("reply from server=", string(reply2))
+	println("reply from server length", string(reply))
+
+	//	println("reply from server=", string(reply2))
 
 	conn.Close()
 
