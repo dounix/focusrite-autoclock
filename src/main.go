@@ -22,7 +22,7 @@ func main() {
 	devicemsg := readMsg(conn)
 	//log.Printf("second read: %s", devicemsg)
 	maindevicearrival := decodeDeviceArrival(devicemsg)
-	log.Printf("device arrival struct %+v\n\n", maindevicearrival)
+	//log.Printf("device arrival struct %+v\n\n", maindevicearrival)
 	// log.Printf("device arrival struct mixes %+v\n\n", maindevicearrival.Device.Mixer)
 
 	//	clockingLockedId, _ := strconv.ParseUint(maindevicearrival.Device.Clocking.Locked.ID, 10, 16)
@@ -30,6 +30,11 @@ func main() {
 	log.Printf("int for locked id  %+v\n\n", maindevicearrival.Device.Clocking.Locked)
 	log.Printf("type for locked id is %T\n\n", maindevicearrival.Device.Clocking.Locked.ID)
 	log.Printf("locked id int is %d\n\n", maindevicearrival.Device.Clocking.Locked.ID)
+
+	log.Printf("locked source ID int %d\n\n", maindevicearrival.Device.Clocking.ClockSource.ID)
+
+	log.Printf("source input spdif meter ID %d\n\n", maindevicearrival.Device.Inputs.SpdifRca[len(maindevicearrival.Device.Inputs.SpdifRca)-1].Meter.ID)
+
 	devicesettings := readMsg(conn)
 
 	maindeviceset := decodeDeviceSettings(devicesettings)
@@ -40,6 +45,12 @@ func main() {
 	log.Printf("get control id is %d", findControlId(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
 
 	log.Printf("get control value is %s", getControlValue(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
+	log.Printf("get meter for spdif value is %s", getControlValue(maindevicearrival.Device.Inputs.SpdifRca[0].Meter.ID, maindeviceset))
+
+	log.Printf("get clocksource value is %s", getControlValue(maindevicearrival.Device.Clocking.ClockSource.ID, maindeviceset))
+
+	// const Length=00002e <device-subscribe devid="1" subscribe="true"/>
+
 	// func findControlId(controlID int, deviceSet DeviceSet ) int {
 
 	// for i := range myconfig {
@@ -70,7 +81,7 @@ func getControlValue(controlID int, deviceSet DeviceSet) string {
 	//	return 123
 	for i := range deviceSet.Item {
 		if deviceSet.Item[i].ID == controlID {
-			log.Printf("found a matching thing at index %d", i)
+			// log.Printf("found a matching thing at index %d", i)
 			return deviceSet.Item[i].Value
 		}
 	}

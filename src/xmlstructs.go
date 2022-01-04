@@ -189,22 +189,22 @@ type DeviceArrival struct {
 			} `xml:"analogue"`
 			SpdifRca []struct {
 				Text             string `xml:",chardata"`
-				ID               string `xml:"id,attr"`
+				ID               int    `xml:"id,attr"`
 				SupportsTalkback string `xml:"supports-talkback,attr"`
 				Hidden           string `xml:"hidden,attr"`
 				Name             string `xml:"name,attr"`
 				StereoName       string `xml:"stereo-name,attr"`
 				Available        struct {
 					Text string `xml:",chardata"`
-					ID   string `xml:"id,attr"`
+					ID   int    `xml:"id,attr"`
 				} `xml:"available"`
 				Meter struct {
 					Text string `xml:",chardata"`
-					ID   string `xml:"id,attr"`
+					ID   int    `xml:"id,attr"`
 				} `xml:"meter"`
 				Nickname struct {
 					Text string `xml:",chardata"`
-					ID   string `xml:"id,attr"`
+					ID   int    `xml:"id,attr"`
 				} `xml:"nickname"`
 			} `xml:"spdif-rca"`
 			Playback []struct {
@@ -367,7 +367,7 @@ type DeviceArrival struct {
 			} `xml:"locked"`
 			ClockSource struct {
 				Text string `xml:",chardata"`
-				ID   string `xml:"id,attr"`
+				ID   int    `xml:"id,attr"`
 				Enum []struct {
 					Text  string `xml:",chardata"`
 					Value string `xml:"value,attr"`
