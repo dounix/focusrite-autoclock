@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+
+	mainmap := make(map[int]string)
 	//	service := discoverTcpService()
 	//	log.Printf("discoverTcpService returned %s", service)
 	conn := connectTcp()
@@ -38,9 +40,9 @@ func main() {
 	devicesettings := readMsg(conn)
 
 	maindeviceset := decodeDeviceSettings(devicesettings)
-	log.Printf("main device set struct item 33 %+v\n\n", maindeviceset.Item[33])
+	//	log.Printf("main device set struct item 33 %+v\n\n", maindeviceset.Item[33])
 
-	log.Printf("main device set struct item 33 id is %d\n\n", maindeviceset.Item[33].ID)
+	//	log.Printf("main device set struct item 33 id is %d\n\n", maindeviceset.Item[33].ID)
 
 	log.Printf("get control id is %d", findControlId(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
 
@@ -49,6 +51,9 @@ func main() {
 
 	log.Printf("get clocksource value is %s", getControlValue(maindevicearrival.Device.Clocking.ClockSource.ID, maindeviceset))
 
+	log.Printf("mainmap 441 %s", mainmap[441])
+	updateMap(mainmap, maindeviceset)
+	log.Printf("mainmap 441 %s", mainmap[441])
 	// const Length=00002e <device-subscribe devid="1" subscribe="true"/>
 
 	// func findControlId(controlID int, deviceSet DeviceSet ) int {
@@ -73,6 +78,15 @@ func main() {
 	// Found!
 	// }
 	// }
+
+}
+
+func updateMap(mainmap map[int]string, deviceSet DeviceSet) {
+	for i := range deviceSet.Item {
+		mainmap[deviceSet.Item[i].ID] = deviceSet.Item[i].Value
+		log.Printf("updating map with device id %d, with value %s", deviceSet.Item[i].ID, deviceSet.Item[i].Value)
+	}
+	return
 
 }
 
@@ -110,6 +124,8 @@ func decodeDeviceSettings(payload string) DeviceSet {
 	var deviceset DeviceSet
 
 	xml.Unmarshal([]byte(payload), &deviceset)
+	// sort.Slice(deviceset.Item, func(i, j int) bool {
+	// })
 	return deviceset
 }
 
