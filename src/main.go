@@ -15,45 +15,65 @@ import (
 
 func main() {
 
-	mainmap := make(map[int]string)
+	// mainmap := make(map[int]string)
+
+	// log.Println(mainmap)
 	//	service := discoverTcpService()
 	//	log.Printf("discoverTcpService returned %s", service)
+	valueMap := make(map[int]string)
+
 	conn := connectTcp()
 	clientInit(conn)
-	log.Printf("first read: %s", readMsg(conn))
-	devicemsg := readMsg(conn)
+	// log.Printf("first read: %s\n\n", readMsg(conn))
+	// msgText := readMsg(conn)
+	// log.Printf("2nd read read before decode: %+v\n\n", msgText)
+	// msg := decodeFocusriteMessage(msgText)
+	// rootMesssageRouter(valueMap, msg)
+	// msg2 := decodeFocusriteMessage(msgText)
+	// rootMesssageRouter(valueMap, msg2)
+
+	msg := decodeFocusriteMessage(readMsg(conn))
+	rootMesssageRouter(valueMap, msg)
+
+	msg2 := decodeFocusriteMessage(readMsg(conn))
+	rootMesssageRouter(valueMap, msg2)
+
+	// read2 := decodeFocusriteMessage(msg)
+	// log.Printf("2nd read decoded: %+v\n\n", read2)
+	// log.Printf("testing some fields clock source ID %+v", read2.DeviceArrival.Device.Clocking.ClockSource)
+
 	//log.Printf("second read: %s", devicemsg)
-	maindevicearrival := decodeDeviceArrival(devicemsg)
-	//log.Printf("device arrival struct %+v\n\n", maindevicearrival)
-	// log.Printf("device arrival struct mixes %+v\n\n", maindevicearrival.Device.Mixer)
+	// maindevicearrival := decodeDeviceArrival(devicemsg)
+	// //log.Printf("device arrival struct %+v\n\n", maindevicearrival)
+	// // log.Printf("device arrival struct mixes %+v\n\n", maindevicearrival.Device.Mixer)
 
-	//	clockingLockedId, _ := strconv.ParseUint(maindevicearrival.Device.Clocking.Locked.ID, 10, 16)
-	//	log.Printf("int for locked id  %+v\n\n", clockingLockedId)
-	log.Printf("int for locked id  %+v\n\n", maindevicearrival.Device.Clocking.Locked)
-	log.Printf("type for locked id is %T\n\n", maindevicearrival.Device.Clocking.Locked.ID)
-	log.Printf("locked id int is %d\n\n", maindevicearrival.Device.Clocking.Locked.ID)
+	// //	clockingLockedId, _ := strconv.ParseUint(maindevicearrival.Device.Clocking.Locked.ID, 10, 16)
+	// //	log.Printf("int for locked id  %+v\n\n", clockingLockedId)
+	// log.Printf("int for locked id  %+v\n\n", maindevicearrival.Device.Clocking.Locked)
+	// log.Printf("type for locked id is %T\n\n", maindevicearrival.Device.Clocking.Locked.ID)
+	// log.Printf("locked id int is %d\n\n", maindevicearrival.Device.Clocking.Locked.ID)
 
-	log.Printf("locked source ID int %d\n\n", maindevicearrival.Device.Clocking.ClockSource.ID)
+	// log.Printf("locked source ID int %d\n\n", maindevicearrival.Device.Clocking.ClockSource.ID)
 
-	log.Printf("source input spdif meter ID %d\n\n", maindevicearrival.Device.Inputs.SpdifRca[len(maindevicearrival.Device.Inputs.SpdifRca)-1].Meter.ID)
+	// log.Printf("source input spdif meter ID %d\n\n", maindevicearrival.Device.Inputs.SpdifRca[len(maindevicearrival.Device.Inputs.SpdifRca)-1].Meter.ID)
 
-	devicesettings := readMsg(conn)
+	// devicesettings := readMsg(conn)
 
-	maindeviceset := decodeDeviceSettings(devicesettings)
-	//	log.Printf("main device set struct item 33 %+v\n\n", maindeviceset.Item[33])
+	// maindeviceset := decodeDeviceSettings(devicesettings)
+	// //	log.Printf("main device set struct item 33 %+v\n\n", maindeviceset.Item[33])
 
-	//	log.Printf("main device set struct item 33 id is %d\n\n", maindeviceset.Item[33].ID)
+	// //	log.Printf("main device set struct item 33 id is %d\n\n", maindeviceset.Item[33].ID)
 
-	log.Printf("get control id is %d", findControlId(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
+	// log.Printf("get control id is %d", findControlId(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
 
-	log.Printf("get control value is %s", getControlValue(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
-	log.Printf("get meter for spdif value is %s", getControlValue(maindevicearrival.Device.Inputs.SpdifRca[0].Meter.ID, maindeviceset))
+	// log.Printf("get control value is %s", getControlValue(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
+	// log.Printf("get meter for spdif value is %s", getControlValue(maindevicearrival.Device.Inputs.SpdifRca[0].Meter.ID, maindeviceset))
 
-	log.Printf("get clocksource value is %s", getControlValue(maindevicearrival.Device.Clocking.ClockSource.ID, maindeviceset))
+	// log.Printf("get clocksource value is %s", getControlValue(maindevicearrival.Device.Clocking.ClockSource.ID, maindeviceset))
 
-	log.Printf("mainmap 441 %s", mainmap[441])
-	updateMap(mainmap, maindeviceset)
-	log.Printf("mainmap 441 %s", mainmap[441])
+	// log.Printf("mainmap 441 %s", mainmap[441])
+	// updateMap(mainmap, maindeviceset)
+	// log.Printf("mainmap 441 %s", mainmap[441])
 	// const Length=00002e <device-subscribe devid="1" subscribe="true"/>
 
 	// func findControlId(controlID int, deviceSet DeviceSet ) int {
@@ -81,32 +101,50 @@ func main() {
 
 }
 
-func updateMap(mainmap map[int]string, deviceSet DeviceSet) {
-	for i := range deviceSet.Item {
-		mainmap[deviceSet.Item[i].ID] = deviceSet.Item[i].Value
-		log.Printf("updating map with device id %d, with value %s", deviceSet.Item[i].ID, deviceSet.Item[i].Value)
+func rootMesssageRouter(mainmap map[int]string, m FocusriteMessage) {
+	log.Printf("root message routing %+v", m)
+	//swtich
+	log.Printf("root message routing %+v", m.DeviceArrival.XMLName.Local)
+	// log.Printf("root message routing %+v", m)
+
+	if m.DeviceArrival.XMLName.Local == "" {
+		log.Printf("wasn't dev arrival")
+	}
+
+	// for i := range m.DeviceSet.Item {
+	// 	mainmap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
+	// 	log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
+	// }
+	return
+
+}
+
+func updateMap(mainmap map[int]string, m FocusriteMessage) {
+	for i := range m.DeviceSet.Item {
+		mainmap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
+		log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
 	}
 	return
 
 }
 
-func getControlValue(controlID int, deviceSet DeviceSet) string {
+func getControlValue(controlID int, m FocusriteMessage) string {
 	// return 123
 	//	return 123
-	for i := range deviceSet.Item {
-		if deviceSet.Item[i].ID == controlID {
+	for i := range m.DeviceSet.Item {
+		if m.DeviceSet.Item[i].ID == controlID {
 			// log.Printf("found a matching thing at index %d", i)
-			return deviceSet.Item[i].Value
+			return m.DeviceSet.Item[i].Value
 		}
 	}
 	return "9999"
 }
 
-func findControlId(controlID int, deviceSet DeviceSet) int {
+func findControlId(controlID int, m FocusriteMessage) int {
 	// return 123
 	//	return 123
-	for i := range deviceSet.Item {
-		if deviceSet.Item[i].ID == controlID {
+	for i := range m.DeviceSet.Item {
+		if m.DeviceSet.Item[i].ID == controlID {
 			log.Printf("found a matching thing at index %d", i)
 			return i
 		}
@@ -120,25 +158,33 @@ func findControlId(controlID int, deviceSet DeviceSet) int {
 //     }
 // }
 
-func decodeDeviceSettings(payload string) DeviceSet {
-	var deviceset DeviceSet
-
-	xml.Unmarshal([]byte(payload), &deviceset)
+func decodeFocusriteMessage(payload string) FocusriteMessage {
+	var m FocusriteMessage
+	xml.Unmarshal([]byte(payload), &m)
 	// sort.Slice(deviceset.Item, func(i, j int) bool {
 	// })
-	return deviceset
+	return m
 }
 
-//returns a device arrival struct
-func decodeDeviceArrival(payload string) DeviceArrival {
-	//generate at  https://www.onlinetool.io/xmltogo/
+// func decodeDeviceSettings(payload string) DeviceSet {
+// 	var deviceset DeviceSet
 
-	var devicearrival DeviceArrival
+// 	xml.Unmarshal([]byte(payload), &deviceset)
+// 	// sort.Slice(deviceset.Item, func(i, j int) bool {
+// 	// })
+// 	return deviceset
+// }
 
-	xml.Unmarshal([]byte(payload), &devicearrival)
-	return devicearrival
+// //returns a device arrival struct
+// func decodeDeviceArrival(payload string) DeviceArrival {
+// 	//generate at  https://www.onlinetool.io/xmltogo/
 
-}
+// 	var devicearrival DeviceArrival
+
+// 	xml.Unmarshal([]byte(payload), &devicearrival)
+// 	return devicearrival
+
+// }
 
 func discoverTcpService() string {
 	const DiscoveryService = "localhost:30096"
@@ -262,7 +308,7 @@ func readMsg(conn *net.TCPConn) string {
 			os.Exit(1)
 		}
 
-		response = string(payload)
+		response = fmt.Sprintf("<focusritemessage>%s</focusritemessage>", string(payload))
 
 	}
 	return response
