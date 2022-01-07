@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -21,6 +22,8 @@ func main() {
 	//	service := discoverTcpService()
 	//	log.Printf("discoverTcpService returned %s", service)
 	valueMap := make(map[int]string)
+	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
+	//idNameMap := make(map[int]int)
 
 	conn := connectTcp()
 	clientInit(conn)
@@ -32,12 +35,18 @@ func main() {
 	// msg2 := decodeFocusriteMessage(msgText)
 	// rootMesssageRouter(valueMap, msg2)
 
-	msg := decodeFocusriteMessage(readMsg(conn))
-	rootMesssageRouter(valueMap, msg)
+	// msg := decodeFocusriteMessage(readMsg(conn))
+	// rootMesssageRouter(valueMap, msg)
 
-	msg2 := decodeFocusriteMessage(readMsg(conn))
-	rootMesssageRouter(valueMap, msg2)
+	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
 
+	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
+	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
+
+	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
+	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
+
+	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 	// read2 := decodeFocusriteMessage(msg)
 	// log.Printf("2nd read decoded: %+v\n\n", read2)
 	// log.Printf("testing some fields clock source ID %+v", read2.DeviceArrival.Device.Clocking.ClockSource)
@@ -101,14 +110,37 @@ func main() {
 
 }
 
-func rootMesssageRouter(mainmap map[int]string, m FocusriteMessage) {
-	log.Printf("root message routing %+v", m)
+func rootMesssageRouter(valueMap map[int]string, deviceArrivalMsg *FocusriteMessage, m FocusriteMessage) {
+	// a array of the tags we will route
+	focusriteStructs := []string{m.ClientDetails.XMLName.Local, m.DeviceArrival.XMLName.Local,
+		m.DeviceSet.XMLName.Local, m.Approval.XMLName.Local, m.KeepAlive.XMLName.Local}
+	sort.Strings(focusriteStructs)
+	handler := focusriteStructs[len(focusriteStructs)-1]
+	log.Printf("target handler: %+v", handler)
+	//log.Printf("root message routing %+v", m)
 	//swtich
-	log.Printf("root message routing %+v", m.DeviceArrival.XMLName.Local)
+	// log.Printf("root message routing %+v", m.DeviceArrival.XMLName.Local)
 	// log.Printf("root message routing %+v", m)
+	switch handler {
+	case "client-details":
+		fmt.Println("get the client deets")
+	case "device-arrival":
+		fmt.Println("arrival")
+		*deviceArrivalMsg = m
+	case "keep-alive":
+		fmt.Println("received the keepalive")
+		return
+	case "set":
+		fmt.Println("updating the value map")
+		for i := range m.DeviceSet.Item {
+			valueMap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
+			log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
+		}
 
-	if m.DeviceArrival.XMLName.Local == "" {
-		log.Printf("wasn't dev arrival")
+	case "approval":
+		fmt.Println("check approval")
+	default:
+		log.Printf("unknown handler %s", handler)
 	}
 
 	// for i := range m.DeviceSet.Item {
@@ -151,12 +183,6 @@ func findControlId(controlID int, m FocusriteMessage) int {
 	}
 	return 9999
 }
-
-// for i := range myconfig {
-//     if myconfig[i].Key == "key1" {
-//         // Found!
-//     }
-// }
 
 func decodeFocusriteMessage(payload string) FocusriteMessage {
 	var m FocusriteMessage
@@ -291,10 +317,10 @@ func readMsg(conn *net.TCPConn) string {
 		}
 		// log.Printf("space is: x%sx", space)
 
-		log.Println("Length= was matched")
+		//log.Println("Length= was matched")
 		blength, err := hex.DecodeString("00" + string(length)) // Length= is a 6 digit hex value, padding to 8 digit string so it can cast to an int32
 		if err != nil {
-			println("hex decode failed:", err.Error())
+			println("hex length decode failed:", err.Error())
 			os.Exit(1)
 		}
 		blength2 := binary.BigEndian.Uint32(blength)

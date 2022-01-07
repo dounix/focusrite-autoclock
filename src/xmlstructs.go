@@ -4,6 +4,26 @@ import "encoding/xml"
 
 type FocusriteMessage struct {
 	XMLName xml.Name `"xml:"focusritemessage"`
+	//These are all really top level elements, but the response is wrapped in a dummy focusritemessage xml for unmarshalling
+
+	KeepAlive struct {
+		XMLName xml.Name `xml:"keep-alive"`
+	}
+
+	ClientDetails struct {
+		XMLName xml.Name `xml:"client-details"`
+		Text    string   `xml:",chardata"`
+		ID      string   `xml:"id,attr"`
+	}
+
+	Approval struct {
+		XMLName    xml.Name `xml:"approval"`
+		Text       string   `xml:",chardata"`
+		Hostname   string   `xml:"hostname,attr"`
+		ID         string   `xml:"id,attr"`
+		Type       string   `xml:"type,attr"`
+		Authorised string   `xml:"authorised,attr"`
+	}
 
 	DeviceSet struct {
 		XMLName xml.Name `xml:"set"`
