@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -27,16 +28,6 @@ func main() {
 
 	conn := connectTcp()
 	clientInit(conn)
-	// log.Printf("first read: %s\n\n", readMsg(conn))
-	// msgText := readMsg(conn)
-	// log.Printf("2nd read read before decode: %+v\n\n", msgText)
-	// msg := decodeFocusriteMessage(msgText)
-	// rootMesssageRouter(valueMap, msg)
-	// msg2 := decodeFocusriteMessage(msgText)
-	// rootMesssageRouter(valueMap, msg2)
-
-	// msg := decodeFocusriteMessage(readMsg(conn))
-	// rootMesssageRouter(valueMap, msg)
 
 	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
 
@@ -47,6 +38,21 @@ func main() {
 	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
 
 	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
+
+	log.Printf("source input spdif meter ID %+v\n\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
+
+	conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
+
+	go bgKeepAlive(conn) //send keep alives in background, can't image conn is thread safe..
+
+	for {
+		rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
+		log.Printf("source input spdif meter ID %+v\n\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
+		time.Sleep(500 * time.Millisecond)
+
+	}
+	// log.Printf("source input spdif meter ID %d\n\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[len(deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca)-1].Meter.ID])
+
 	// read2 := decodeFocusriteMessage(msg)
 	// log.Printf("2nd read decoded: %+v\n\n", read2)
 	// log.Printf("testing some fields clock source ID %+v", read2.DeviceArrival.Device.Clocking.ClockSource)
@@ -123,22 +129,24 @@ func rootMesssageRouter(valueMap map[int]string, deviceArrivalMsg *FocusriteMess
 	// log.Printf("root message routing %+v", m)
 	switch handler {
 	case "client-details":
-		fmt.Println("get the client deets")
+		log.Println("get the client deets")
 	case "device-arrival":
-		fmt.Println("arrival")
+		log.Println("arrival")
 		*deviceArrivalMsg = m
 	case "keep-alive":
-		fmt.Println("received the keepalive")
+		log.Println("received the keepalive")
 		return
 	case "set":
-		fmt.Println("updating the value map")
+		log.Println("updating the value map")
 		for i := range m.DeviceSet.Item {
 			valueMap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
-			log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
+			// log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
 		}
 
 	case "approval":
-		fmt.Println("check approval")
+		log.Println("check approval")
+		log.Printf("approval message: %+v", m.Approval)
+
 	default:
 		log.Printf("unknown handler %s", handler)
 	}
@@ -147,15 +155,6 @@ func rootMesssageRouter(valueMap map[int]string, deviceArrivalMsg *FocusriteMess
 	// 	mainmap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
 	// 	log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
 	// }
-	return
-
-}
-
-func updateMap(mainmap map[int]string, m FocusriteMessage) {
-	for i := range m.DeviceSet.Item {
-		mainmap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
-		log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
-	}
 	return
 
 }
@@ -191,26 +190,6 @@ func decodeFocusriteMessage(payload string) FocusriteMessage {
 	// })
 	return m
 }
-
-// func decodeDeviceSettings(payload string) DeviceSet {
-// 	var deviceset DeviceSet
-
-// 	xml.Unmarshal([]byte(payload), &deviceset)
-// 	// sort.Slice(deviceset.Item, func(i, j int) bool {
-// 	// })
-// 	return deviceset
-// }
-
-// //returns a device arrival struct
-// func decodeDeviceArrival(payload string) DeviceArrival {
-// 	//generate at  https://www.onlinetool.io/xmltogo/
-
-// 	var devicearrival DeviceArrival
-
-// 	xml.Unmarshal([]byte(payload), &devicearrival)
-// 	return devicearrival
-
-// }
 
 func discoverTcpService() string {
 	const DiscoveryService = "localhost:30096"
@@ -288,9 +267,18 @@ func connectTcp() *net.TCPConn {
 }
 
 func clientInit(conn *net.TCPConn) {
-	conn.Write([]byte("Length=000055 <client-details hostname=\"iphone\" client-key=\"11111111-2042-4050-8FED-A3CA5BABB11D\"/>"))
+	conn.Write([]byte("Length=000055 <client-details hostname=\"jimsne\" client-key=\"11111111-2042-4050-8FED-B3CA5BABB11D\"/>"))
 	// _, err := conn.Write([]byte("Length=000055 <client-details hostname=\"iphone\" client-key=\"11111111-2042-4050-8FED-A3CA5BABB11D\"/>"))
 
+}
+
+func bgKeepAlive(conn *net.TCPConn) {
+	keepAliveTicker := time.NewTicker(3 * time.Second)
+	for t := range keepAliveTicker.C {
+		fmt.Println("sending keep alive", t)
+		// sendKeepAlive(conn)
+		conn.Write([]byte(`Length=00000d <keep-alive/>`))
+	}
 }
 
 func readMsg(conn *net.TCPConn) string {
@@ -325,7 +313,7 @@ func readMsg(conn *net.TCPConn) string {
 		}
 		blength2 := binary.BigEndian.Uint32(blength)
 
-		log.Printf("blength2 is is %d bytes", blength2)
+		// log.Printf("blength2 is is %d bytes", blength2)
 
 		payload := make([]byte, blength2)
 		_, err = conn.Read(payload)
