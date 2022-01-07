@@ -17,106 +17,40 @@ import (
 
 func main() {
 
-	// mainmap := make(map[int]string)
-
-	// log.Println(mainmap)
-	//	service := discoverTcpService()
-	//	log.Printf("discoverTcpService returned %s", service)
 	valueMap := make(map[int]string)
 	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
-	//idNameMap := make(map[int]int)
 
 	conn := connectTcp()
 	clientInit(conn)
 
-	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
-
-	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
-	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
-
-	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
-	rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
-
-	log.Printf("clocking clocksource is %+v", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
-
-	log.Printf("source input spdif meter ID %+v\n\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
-
-	conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
-
 	go bgKeepAlive(conn) //send keep alives in background, can't image conn is thread safe..
 
+	go bgWatchClock(conn, valueMap, &deviceArrivalMsg) //watch the clock and make sure it's what we want..
+
 	for {
-		rootMesssageRouter(valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
-		log.Printf("source input spdif meter ID %+v\n\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
+		rootMesssageRouter(conn, valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
+		//  These aren't avaialble until we decode the device arrival(field IDs) and device set(values)
+		//  log.Printf("source input spdif meter ID %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
+		//	log.Printf("clock locked %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
+		//	log.Printf("clock source %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
 		time.Sleep(500 * time.Millisecond)
-
 	}
-	// log.Printf("source input spdif meter ID %d\n\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[len(deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca)-1].Meter.ID])
+} //end main
 
-	// read2 := decodeFocusriteMessage(msg)
-	// log.Printf("2nd read decoded: %+v\n\n", read2)
-	// log.Printf("testing some fields clock source ID %+v", read2.DeviceArrival.Device.Clocking.ClockSource)
-
-	//log.Printf("second read: %s", devicemsg)
-	// maindevicearrival := decodeDeviceArrival(devicemsg)
-	// //log.Printf("device arrival struct %+v\n\n", maindevicearrival)
-	// // log.Printf("device arrival struct mixes %+v\n\n", maindevicearrival.Device.Mixer)
-
-	// //	clockingLockedId, _ := strconv.ParseUint(maindevicearrival.Device.Clocking.Locked.ID, 10, 16)
-	// //	log.Printf("int for locked id  %+v\n\n", clockingLockedId)
-	// log.Printf("int for locked id  %+v\n\n", maindevicearrival.Device.Clocking.Locked)
-	// log.Printf("type for locked id is %T\n\n", maindevicearrival.Device.Clocking.Locked.ID)
-	// log.Printf("locked id int is %d\n\n", maindevicearrival.Device.Clocking.Locked.ID)
-
-	// log.Printf("locked source ID int %d\n\n", maindevicearrival.Device.Clocking.ClockSource.ID)
-
-	// log.Printf("source input spdif meter ID %d\n\n", maindevicearrival.Device.Inputs.SpdifRca[len(maindevicearrival.Device.Inputs.SpdifRca)-1].Meter.ID)
-
-	// devicesettings := readMsg(conn)
-
-	// maindeviceset := decodeDeviceSettings(devicesettings)
-	// //	log.Printf("main device set struct item 33 %+v\n\n", maindeviceset.Item[33])
-
-	// //	log.Printf("main device set struct item 33 id is %d\n\n", maindeviceset.Item[33].ID)
-
-	// log.Printf("get control id is %d", findControlId(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
-
-	// log.Printf("get control value is %s", getControlValue(maindevicearrival.Device.Clocking.Locked.ID, maindeviceset))
-	// log.Printf("get meter for spdif value is %s", getControlValue(maindevicearrival.Device.Inputs.SpdifRca[0].Meter.ID, maindeviceset))
-
-	// log.Printf("get clocksource value is %s", getControlValue(maindevicearrival.Device.Clocking.ClockSource.ID, maindeviceset))
-
-	// log.Printf("mainmap 441 %s", mainmap[441])
-	// updateMap(mainmap, maindeviceset)
-	// log.Printf("mainmap 441 %s", mainmap[441])
-	// const Length=00002e <device-subscribe devid="1" subscribe="true"/>
-
-	// func findControlId(controlID int, deviceSet DeviceSet ) int {
-
-	// for i := range myconfig {
-	// if myconfig[i].Key == "key1" {
-	// Found!
-	// }
-	// }
-
-	//intVar, err := strconv.Atoi(strVar)
-
-	//todo find the
-	//	log.Printf("is locked clock fuck xxx %+v\n\n", maindeviceset.Item[clockingLockedId])
-
-	// 	log.Printf("is locked clock fuck xxx %+v\n\n", maindeviceset.Item[strconv.Atoi(maindevicearrival.Device.Clocking.Locked.ID)])
-	// log.Printf("second read: %s", readMsg(conn))
-	// log.Printf("third read: %s", readMsg(conn))
-
-	// for i := range myconfig {
-	// if myconfig[i].Key == "key1" {
-	// Found!
-	// }
-	// }
-
+func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *FocusriteMessage) {
+	// log.Println("running watchclock")
+	watchTicker := time.NewTicker(2 * time.Second)
+	for t := range watchTicker.C {
+		log.Println("running watchclock", t)
+		log.Printf("source input spdif meter ID %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
+		log.Printf("clock locked %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
+		log.Printf("clock source %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
+		// sendKeepAlive(conn)
+		// conn.Write([]byte(`Length=00000d <keep-alive/>`))
+	}
 }
 
-func rootMesssageRouter(valueMap map[int]string, deviceArrivalMsg *FocusriteMessage, m FocusriteMessage) {
+func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *FocusriteMessage, m FocusriteMessage) {
 	// a array of the tags we will route
 	focusriteStructs := []string{m.ClientDetails.XMLName.Local, m.DeviceArrival.XMLName.Local,
 		m.DeviceSet.XMLName.Local, m.Approval.XMLName.Local, m.KeepAlive.XMLName.Local}
@@ -133,6 +67,8 @@ func rootMesssageRouter(valueMap map[int]string, deviceArrivalMsg *FocusriteMess
 	case "device-arrival":
 		log.Println("arrival")
 		*deviceArrivalMsg = m
+		log.Println("sending subscribe message after receiving device arrival")
+		conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
 	case "keep-alive":
 		log.Println("received the keepalive")
 		return
@@ -275,7 +211,7 @@ func clientInit(conn *net.TCPConn) {
 func bgKeepAlive(conn *net.TCPConn) {
 	keepAliveTicker := time.NewTicker(3 * time.Second)
 	for t := range keepAliveTicker.C {
-		fmt.Println("sending keep alive", t)
+		log.Println("sending keep alive", t)
 		// sendKeepAlive(conn)
 		conn.Write([]byte(`Length=00000d <keep-alive/>`))
 	}
