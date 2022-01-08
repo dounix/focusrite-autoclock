@@ -7,7 +7,7 @@ A number of S/PDIF input sources(Fractal AxeFx or Kemper) must be the master clo
 
 When using the S/PDIF clock source, if that S/PDIF source is turned off, no audio will be output from any source to the monitor outputs.
 
-This is a minor annoyance, more so when using the focusrite the primary audio interface.  Focusrite control can be used to switch to the internal clock when the S/PDIF source is unavailable.
+This is a minor annoyance, more so when the focusrite is the primary audio interface.  Focusrite control can be used to switch to the internal clock when the S/PDIF source is unavailable.
 
 The bigger nuisance comes in remembering to restore the S/PDIF clock source when the source is powered up, only recognizing this after recordings have been ruined with timing jitters.
 
