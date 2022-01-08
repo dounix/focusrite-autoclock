@@ -42,13 +42,13 @@ jobs:
 
     - name: Autorelease
       uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
-          files: |
-            focusrite-autoclock-x64
-            focusrite-autoclock-arm64
-            focusrite-autoclock.exe
-            focusrite-autoclock-darwin
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: |
+          focusrite-autoclock-x64
+          focusrite-autoclock-arm64
+          focusrite-autoclock.exe
+          focusrite-autoclock-darwin
