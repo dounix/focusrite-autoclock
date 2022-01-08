@@ -40,4 +40,5 @@ Run on any host that can reach focusrite control(on your local network)
 #### Discover focusrite control on host named elvis
 `./focusrite-autoclock -h elvis`
 
-
+### Releases
+GH actions should build releases for MacOS / Windows / Linux / Linux Arm
