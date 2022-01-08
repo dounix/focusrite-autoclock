@@ -40,9 +40,6 @@ jobs:
         GOARCH: amd64
       run: go build -o focusrite-autoclock-darwin ./src/.
 
-    # - name: "Build & test"
-    #     run: |
-    #       echo "done!"
     - name: Auto release
       uses: "marvinpinto/action-automatic-releases@latest"
         with:
