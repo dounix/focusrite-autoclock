@@ -13,4 +13,5 @@ Every 5 seconds,
 If the clock is set to S/PDIF< and the clock isn't locked, clock is set to Internal.  
 If the clock is set to internal and S/PDIF input has some input, it will set the clock to S/PDIF.
 
+    
 Don't use this code, it's likely dangerous, you might discover a UDP service and get bad input.
