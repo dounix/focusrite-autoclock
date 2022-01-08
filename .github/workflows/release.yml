@@ -57,7 +57,4 @@ https://github.com/dounix/focusrite-autoclock/releases/download/latest/focusrite
         prerelease: true
         title: "Development Build"
         files: |
-          focusrite-autoclock-x64
-          focusrite-autoclock-arm64
-          focusrite-autoclock.exe
-          focusrite-autoclock-darwin
+          focusrite-autoclock*
