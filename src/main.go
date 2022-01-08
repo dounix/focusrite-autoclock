@@ -145,14 +145,14 @@ func discoverTcpService(host string) string {
 		log.Fatal(err)
 	}
 
-	log.Info("Established connection to: ", DiscoveryService)
+	log.Info("Sending UDP discovery to: ", DiscoveryService)
 	log.Debug("Remote UDP address: ", conn.RemoteAddr().String())
 	log.Debug("Local UDP client address: ", conn.LocalAddr().String())
 
 	defer conn.Close()
 
 	command := `<client-discovery app="SAFFIRE-CONTROL" version="4" device="iOS"/>`
-	log.Debug("Length is: ", len(command))
+	log.Trace("Length is: ", len(command))
 	fullmessage := fmt.Sprintf("Length=%06x %s", len(command), command)
 	log.Trace("before sanitize")
 	log.Trace(p.Sanitize(fullmessage))
@@ -161,12 +161,19 @@ func discoverTcpService(host string) string {
 
 	_, err = conn.Write([]byte(fullmessage))
 	if err != nil {
-		log.Error(err)
+		log.Error("failed to send UDP message, not sure how this would ever fail, UPD is connectionless", err)
+		os.Exit(1)
 	}
 
 	// receive udp message from server
 	buffer := make([]byte, 1024)
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	n, addr, err := conn.ReadFromUDP(buffer)
+	if err != nil {
+		log.Error("failed to read UDP message, is focusrite control running on the discovery host?")
+		log.Error("Error message: ", err)
+		os.Exit(1)
+	}
 
 	log.Info("UDP Server : ", addr)
 	log.Debug("Received from UDP server : ", string(buffer[:n]))
