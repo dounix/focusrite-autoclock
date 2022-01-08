@@ -1,0 +1,53 @@
+---
+name: "pre-release"
+
+on:
+  push:
+    branches:
+      - "master"
+
+jobs:
+  pre-release:
+    name: "Pre Release"
+    runs-on: "ubuntu-latest"
+    - uses: actions/checkout@v2
+    steps:
+      # ...
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Build Linux x64
+      env:
+        GOOS: linux
+        GOARCH: amd64
+      run: go build -o focusrite-autoclock-x64 ./src/.
+    - name: Build Linux arm
+        GOOS: linux
+        GOARCH: arm64
+      run: go build -o focusrite-autoclock-arm64 ./src/.
+    - name: Build Windows x64
+        GOOS: windows
+        GOARCH: amd64
+      run: go build -o focusrite-autoclock.exe ./src/.
+    - name: Build MacOS 
+        GOOS: darwin
+        GOARCH: amd64
+      run: go build -o focusrite-autoclock-darwin ./src/.
+
+    - name: "Build & test"
+        run: |
+          echo "done!"
+
+    - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            focusrite-autoclock-x64
+            focusrite-autoclock-arm64
+            focusrite-autoclock.exe
+            focusrite-autoclock-darwin
