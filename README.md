@@ -22,13 +22,16 @@ Every 5 seconds
 ### Don't use this code, it's likely dangerous, you might discover a UDP service and get bad input.
 
 ## Building
-go ./src/. -o focusrite-autoclock
+Build for your platform of choice
+
+`go ./src/. -o focusrite-autoclock`
 
 ## Usage
+Run on any host that can reach focusrite control(on your local network)
 
 ### Options  
  -h UDP discovery hostname, defaults to localhost
-### Example 
+### Examples 
 #### Discover focusrite control on localhost
 `./focusrite-autoclock`
 #### Discover focusrite control on host named elvis
