@@ -23,27 +23,27 @@ jobs:
       env:
         GOOS: linux
         GOARCH: amd64
-      run: go build -v -o focusrite-autoclock-x64 ./src/.
+      run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
     - name: Build Linux arm64
       env:
         GOOS: linux
         GOARCH: arm64
-      run: go build -v -o focusrite-autoclock-$GOARCH ./src/.
+      run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
     - name: Build Linux arm
       env:
         GOOS: linux
         GOARCH: arm
-      run: go build -v -o focusrite-autoclock-$GOARCH ./src/.
+      run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
     - name: Build Windows x64
       env:
         GOOS: windows
         GOARCH: amd64
-      run: go build -v -o focusrite-autoclock.exe ./src/.
+      run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH.exe ./src/.
     - name: Build MacOS
       env:
         GOOS: darwin
         GOARCH: amd64
-      run: go build -v -o focusrite-autoclock-$GOOS ./src/.
+      run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
     - name: Autorelease
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
