@@ -7,10 +7,11 @@ A number of S/PDIF input sources(Fractal AxeFx or Kemper) must be the master clo
 
 When using the S/PDIF clock source, if that S/PDIF source is turned off, no audio will be output from any source to the monitor outputs.
 
-This is a minor annoyance, more so when using the focusrite the primary audio interface.  Focusrite control can be used to switch to the internal clock when the S/PDIF source is unavailable.
+This is a minor annoyance, more so when the focusrite is the primary audio interface.  Focusrite control can be used to switch to the internal clock when the S/PDIF source is unavailable.
 
 The bigger nuisance comes in remembering to restore the S/PDIF clock source when the source is powered up, only recognizing this after recordings have been ruined with timing jitters.
 
+TLDR; I don't want to fiddle with focusrite control when powering up/down my Axe Fx or Kemper.
 
 ## How
 This program works as a client to the focusrite-control(must be running somewhere on your network) server to evaluate the current clock state
@@ -18,6 +19,8 @@ This program works as a client to the focusrite-control(must be running somewher
 Every 5 seconds
 * If the clock is set to S/PDIF< and the clock isn't locked, clock is set to Internal.  
 * If the clock is set to internal and S/PDIF input has some input, it will set the clock to S/PDIF.
+![](img/screen.png)
+
 
 ### Don't use this code, it's likely dangerous, you might discover a UDP service and get bad input.
 
