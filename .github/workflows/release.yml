@@ -23,24 +23,24 @@ jobs:
       env:
         GOOS: linux
         GOARCH: amd64
-      run: go build -o focusrite-autoclock-x64 ./src/.
+      run: go build -v -o focusrite-autoclock-x64 ./src/.
     - name: Build Linux arm
       env:
         GOOS: linux
         GOARCH: arm64
-      run: go build -o focusrite-autoclock-arm64 ./src/.
+      run: go build -v -o focusrite-autoclock-arm64 ./src/.
     - name: Build Windows x64
       env:
         GOOS: windows
         GOARCH: amd64
-      run: go build -o focusrite-autoclock.exe ./src/.
+      run: go build -v -o focusrite-autoclock.exe ./src/.
     - name: Build MacOS
       env:
         GOOS: darwin
         GOARCH: amd64
-      run: go build -o focusrite-autoclock-darwin ./src/.
+      run: go build -v -o focusrite-autoclock-darwin ./src/.
 
-    # - name: Auto release
+    # - name: Autorelease
     #   uses: "marvinpinto/action-automatic-releases@latest"
     #     with:
     #       repo_token: "${{ secrets.GITHUB_TOKEN }}"
