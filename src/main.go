@@ -19,12 +19,15 @@ import (
 )
 
 func main() {
-	log.SetLevel(log.InfoLevel)  //TODO change to info
-	log.SetLevel(log.DebugLevel) //TODO change to info
+	log.SetLevel(log.InfoLevel) //TODO change to info
 
 	udphost := flag.String("h", "localhost", "hostname for initial UDP discovery")
-
+	debugPtr := flag.Bool("d", false, "debug enable")
 	flag.Parse()
+
+	if *debugPtr == true {
+		log.SetLevel(log.DebugLevel)
+	}
 	log.Debug("hostname set to ", *udphost)
 	valueMap := make(map[int]string)
 	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
