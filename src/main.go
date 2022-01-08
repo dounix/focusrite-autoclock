@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"sort"
@@ -13,11 +12,14 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/microcosm-cc/bluemonday"
 )
 
 func main() {
-
+	// log.SetLevel(log.DebugLevel) //TODO change to info
+	log.SetLevel(log.InfoLevel) //TODO change to info
 	valueMap := make(map[int]string)
 	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
 
@@ -30,10 +32,6 @@ func main() {
 
 	for {
 		rootMesssageRouter(conn, valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
-		//  These aren't avaialble until we decode the device arrival(field IDs) and device set(values)
-		//  log.Printf("source input spdif meter ID %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
-		//	log.Printf("clock locked %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
-		//	log.Printf("clock source %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
 		time.Sleep(5 * time.Millisecond)
 	}
 } //end main
@@ -42,13 +40,13 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 	// log.Println("running watchclock")
 	watchTicker := time.NewTicker(5 * time.Second) //need to be slightly longer than it takes to lock..
 	for t := range watchTicker.C {
-		log.Println("running watchclock", t)
-		log.Printf("source input spdif meter ID %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
-		log.Printf("clock locked %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
-		log.Printf("clock source %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
+		log.Debug("running watchclock", t)
+		log.Debug("source input spdif meter ID: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
+		log.Debug("clock locked: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
+		log.Debug("clock source: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
 		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID] == "false" &&
 			valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "S/PDIF" {
-			log.Println("Setting clock to Internal")
+			log.Info("Setting clock to Internal")
 			setInternal := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"Internal\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setInternal)
 		}
@@ -56,7 +54,7 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 		//log.Println("spdiflevel:", spdifLevel)
 		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "Internal" &&
 			spdifLevel > -100 {
-			log.Println("Setting clock to S/PDIF")
+			log.Info("Setting clock to S/PDIF")
 			setSpdif := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"S/PDIF\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setSpdif)
 		}
@@ -71,36 +69,36 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 		m.DeviceSet.XMLName.Local, m.Approval.XMLName.Local, m.KeepAlive.XMLName.Local}
 	sort.Strings(focusriteStructs)
 	handler := focusriteStructs[len(focusriteStructs)-1]
-	// log.Printf("target handler: %+v", handler)
+	log.Trace("target handler: ", handler)
 	//log.Printf("root message routing %+v", m)
 	//swtich
 	// log.Printf("root message routing %+v", m.DeviceArrival.XMLName.Local)
 	// log.Printf("root message routing %+v", m)
 	switch handler {
 	case "client-details":
-		log.Println("get the client deets")
+		log.Debug("get the client deets")
 	case "device-arrival":
-		log.Println("arrival")
+		log.Debug("processing arrival")
 		*deviceArrivalMsg = m
-		log.Println("sending subscribe message after receiving device arrival")
+		log.Debug("sending subscribe message after receiving device arrival")
 		//conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
 		writeMsg(conn, `<device-subscribe devid="1" subscribe="true"/>`)
 	case "keep-alive":
-		log.Println("received the keepalive")
+		log.Debug("received the keepalive")
 		return
 	case "set":
-		// log.Println("updating the value map")
+		log.Trace("updating the value map")
 		for i := range m.DeviceSet.Item {
 			valueMap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
 			// log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
 		}
 
 	case "approval":
-		log.Println("check approval")
-		log.Printf("approval message: %+v", m.Approval)
+		log.Debug("check approval")
+		log.Debug("approval message: ", m.Approval)
 
 	default:
-		log.Printf("unknown handler %s", handler)
+		log.Warn("unknown handler: ", handler)
 	}
 
 	return
@@ -135,34 +133,34 @@ func discoverTcpService() string {
 		log.Fatal(err)
 	}
 
-	log.Printf("Established connection to %s \n", DiscoveryService)
-	log.Printf("Remote UDP address : %s \n", conn.RemoteAddr().String())
-	log.Printf("Local UDP client address : %s \n", conn.LocalAddr().String())
+	log.Info("Established connection to: ", DiscoveryService)
+	log.Debug("Remote UDP address: ", conn.RemoteAddr().String())
+	log.Debug("Local UDP client address: ", conn.LocalAddr().String())
 
 	defer conn.Close()
 
 	command := `<client-discovery app="SAFFIRE-CONTROL" version="4" device="iOS"/>`
-	log.Printf("Length is %x\n", len(command))
+	log.Debug("Length is: ", len(command))
 	fullmessage := fmt.Sprintf("Length=%06x %s", len(command), command)
-	log.Println("before sanitize")
-	log.Println(p.Sanitize(fullmessage))
-	log.Println("after sanitize")
-	log.Println(fullmessage)
+	log.Trace("before sanitize")
+	log.Trace(p.Sanitize(fullmessage))
+	log.Trace("after sanitize")
+	log.Trace(fullmessage)
 
 	_, err = conn.Write([]byte(fullmessage))
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 	}
 
 	// receive udp message from server
 	buffer := make([]byte, 1024)
 	n, addr, err := conn.ReadFromUDP(buffer)
 
-	fmt.Println("UDP Server : ", addr)
-	fmt.Println("Received from UDP server : ", string(buffer[:n]))
+	log.Info("UDP Server : ", addr)
+	log.Debug("Received from UDP server : ", string(buffer[:n]))
 	//	xmlmessage := strings.SplitN(string(buffer[:n]), " ", 1)
 	xmlmessage := strings.SplitN(string(buffer[:n]), " ", 2)[1]
-	log.Printf("xml message : %s ", xmlmessage)
+	log.Debug("udp xml message: ", xmlmessage)
 	//tokenizer := html.NewTokenizer(xmlmessage)
 
 	var disco Serveraccouncement
@@ -170,8 +168,8 @@ func discoverTcpService() string {
 	xml.Unmarshal([]byte(xmlmessage), &disco)
 	//	fmt.Println(disco)
 	//	fmt.Printf("%V\n", disco)
-	fmt.Printf("port %s\n", disco.Port)
-	fmt.Printf("hostname %s\n", disco.Hostname)
+	log.Debug("port: ", disco.Port)
+	log.Debug("hostname: ", disco.Hostname)
 	return disco.Hostname + ":" + disco.Port
 }
 
@@ -179,12 +177,12 @@ func connectTcp() *net.TCPConn {
 	serviceName := discoverTcpService()
 	tcpAddr, err := net.ResolveTCPAddr("tcp", serviceName)
 	if err != nil {
-		log.Println("resolution failed: ", err.Error())
+		log.Error("resolution failed: ", err.Error())
 		os.Exit(1)
 	}
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		log.Println("Dial failed:", err.Error())
+		log.Error("Dial failed:", err.Error())
 		os.Exit(1)
 	}
 	return conn
@@ -201,7 +199,7 @@ func clientInit(conn *net.TCPConn) {
 func bgKeepAlive(conn *net.TCPConn) {
 	keepAliveTicker := time.NewTicker(3 * time.Second)
 	for t := range keepAliveTicker.C {
-		log.Println("sending keep alive", t)
+		log.Debug("sending keep alive", t)
 		// sendKeepAlive(conn)
 		writeMsg(conn, `<keep-alive/>`)
 		//conn.Write([]byte(`Length=00000d <keep-alive/>`))
@@ -210,7 +208,7 @@ func bgKeepAlive(conn *net.TCPConn) {
 
 func writeMsg(conn *net.TCPConn, msg string) {
 	fullmsg := fmt.Sprintf("Length=%06x %s", len(msg), msg)
-	log.Printf("fullmessage: %s", fullmsg)
+	log.Debug("fullmessage: ", fullmsg)
 	conn.Write([]byte(fullmsg))
 }
 
@@ -219,21 +217,21 @@ func readMsg(conn *net.TCPConn) string {
 	var response string
 	_, err := conn.Read(reply)
 	if err != nil {
-		println("Read from server failed:", err.Error())
+		log.Error("Read from server failed:", err.Error())
 		os.Exit(1)
 	}
 	if string(reply[:]) == "Length=" {
 		length := make([]byte, 6)
 		_, err = conn.Read(length)
 		if err != nil {
-			println("Read length from server failed:", err.Error())
+			log.Error("Read length from server failed:", err.Error())
 			os.Exit(1)
 		}
 
 		space := make([]byte, 1)
 		_, err = conn.Read(space)
 		if err != nil {
-			println("Read space from server failed:", err.Error())
+			log.Error("Read space from server failed:", err.Error())
 			os.Exit(1)
 		}
 		// log.Printf("space is: x%sx", space)
@@ -241,7 +239,7 @@ func readMsg(conn *net.TCPConn) string {
 		//log.Println("Length= was matched")
 		blength, err := hex.DecodeString("00" + string(length)) // Length= is a 6 digit hex value, padding to 8 digit string so it can cast to an int32
 		if err != nil {
-			println("hex length decode failed:", err.Error())
+			log.Error("hex length decode failed:", err.Error())
 			os.Exit(1)
 		}
 		blength2 := binary.BigEndian.Uint32(blength)
@@ -251,7 +249,7 @@ func readMsg(conn *net.TCPConn) string {
 		payload := make([]byte, blength2)
 		_, err = conn.Read(payload)
 		if err != nil {
-			println("Read length failed:", err.Error())
+			log.Error("Read length failed:", err.Error())
 			os.Exit(1)
 		}
 
