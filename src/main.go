@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,18 +34,32 @@ func main() {
 		//  log.Printf("source input spdif meter ID %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
 		//	log.Printf("clock locked %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
 		//	log.Printf("clock source %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 } //end main
 
 func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *FocusriteMessage) {
 	// log.Println("running watchclock")
-	watchTicker := time.NewTicker(2 * time.Second)
+	watchTicker := time.NewTicker(5 * time.Second) //need to be slightly longer than it takes to lock..
 	for t := range watchTicker.C {
 		log.Println("running watchclock", t)
 		log.Printf("source input spdif meter ID %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
 		log.Printf("clock locked %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
 		log.Printf("clock source %+v\n", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
+		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID] == "false" &&
+			valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "S/PDIF" {
+			log.Println("Setting clock to Internal")
+			setInternal := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"Internal\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
+			writeMsg(conn, setInternal)
+		}
+		spdifLevel, _ := strconv.ParseInt(valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID], 10, 8)
+		//log.Println("spdiflevel:", spdifLevel)
+		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "Internal" &&
+			spdifLevel > -100 {
+			log.Println("Setting clock to S/PDIF")
+			setSpdif := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"S/PDIF\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
+			writeMsg(conn, setSpdif)
+		}
 		// sendKeepAlive(conn)
 		// conn.Write([]byte(`Length=00000d <keep-alive/>`))
 	}
@@ -56,7 +71,7 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 		m.DeviceSet.XMLName.Local, m.Approval.XMLName.Local, m.KeepAlive.XMLName.Local}
 	sort.Strings(focusriteStructs)
 	handler := focusriteStructs[len(focusriteStructs)-1]
-	log.Printf("target handler: %+v", handler)
+	// log.Printf("target handler: %+v", handler)
 	//log.Printf("root message routing %+v", m)
 	//swtich
 	// log.Printf("root message routing %+v", m.DeviceArrival.XMLName.Local)
@@ -68,12 +83,13 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 		log.Println("arrival")
 		*deviceArrivalMsg = m
 		log.Println("sending subscribe message after receiving device arrival")
-		conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
+		//conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
+		writeMsg(conn, `<device-subscribe devid="1" subscribe="true"/>`)
 	case "keep-alive":
 		log.Println("received the keepalive")
 		return
 	case "set":
-		log.Println("updating the value map")
+		// log.Println("updating the value map")
 		for i := range m.DeviceSet.Item {
 			valueMap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
 			// log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
@@ -87,36 +103,8 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 		log.Printf("unknown handler %s", handler)
 	}
 
-	// for i := range m.DeviceSet.Item {
-	// 	mainmap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
-	// 	log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
-	// }
 	return
 
-}
-
-func getControlValue(controlID int, m FocusriteMessage) string {
-	// return 123
-	//	return 123
-	for i := range m.DeviceSet.Item {
-		if m.DeviceSet.Item[i].ID == controlID {
-			// log.Printf("found a matching thing at index %d", i)
-			return m.DeviceSet.Item[i].Value
-		}
-	}
-	return "9999"
-}
-
-func findControlId(controlID int, m FocusriteMessage) int {
-	// return 123
-	//	return 123
-	for i := range m.DeviceSet.Item {
-		if m.DeviceSet.Item[i].ID == controlID {
-			log.Printf("found a matching thing at index %d", i)
-			return i
-		}
-	}
-	return 9999
 }
 
 func decodeFocusriteMessage(payload string) FocusriteMessage {
@@ -203,7 +191,9 @@ func connectTcp() *net.TCPConn {
 }
 
 func clientInit(conn *net.TCPConn) {
-	conn.Write([]byte("Length=000055 <client-details hostname=\"jimsne\" client-key=\"11111111-2042-4050-8FED-B3CA5BABB11D\"/>"))
+	// conn.Write([]byte("Length=000055 <client-details hostname=\"jimsne\" client-key=\"11111111-2042-4050-8FED-B3CA5BABB11D\"/>"))
+	writeMsg(conn, `<client-details hostname="jimsne" client-key="11111111-2042-4050-8FED-B3CA5BABB11D"/>`)
+
 	// _, err := conn.Write([]byte("Length=000055 <client-details hostname=\"iphone\" client-key=\"11111111-2042-4050-8FED-A3CA5BABB11D\"/>"))
 
 }
@@ -213,8 +203,15 @@ func bgKeepAlive(conn *net.TCPConn) {
 	for t := range keepAliveTicker.C {
 		log.Println("sending keep alive", t)
 		// sendKeepAlive(conn)
-		conn.Write([]byte(`Length=00000d <keep-alive/>`))
+		writeMsg(conn, `<keep-alive/>`)
+		//conn.Write([]byte(`Length=00000d <keep-alive/>`))
 	}
+}
+
+func writeMsg(conn *net.TCPConn, msg string) {
+	fullmsg := fmt.Sprintf("Length=%06x %s", len(msg), msg)
+	log.Printf("fullmessage: %s", fullmsg)
+	conn.Write([]byte(fullmsg))
 }
 
 func readMsg(conn *net.TCPConn) string {
