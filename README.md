@@ -1,17 +1,22 @@
 # Focusrite auto clock
 
-If you use digital inputs to focusrite consumer(Scarlett, or anything that uses control server) products, you have to pick an internal clock or S/PDIF clock.  
+## Why
+When using digital(S/PDIF) inputs to Focusrite consumer audio interfaces, you have the choice of an internal or S/PDIF clock source.  
 
-Many S/PDIF sources(Fractal AxeFx or Kemper) must be the clock master, and will result in pops and clicks in recording if you use the internal clock
+A number of S/PDIF input sources(Fractal AxeFx or Kemper) must be the master clock, and will result in pops and clicks if the internal clock is used.
 
-When set to S/PDIF clock source, if that S/PDIF source is turned off, you will lose all audio.
+When using the S/PDIF clock source, if that S/PDIF source is turned off, no audio will be output from any source to the monitor outputs.
 
-This is a minor annoyance, moreso if you use the focusrite as your primary interface.
-The real issue is not remembering to change back to S/PDIF, which you will notice after you record something, and only notice the pops and clicks when you play it back.
+This is a minor annoyance, more so when using the focusrite the primary audio interface.  Focusrite control can be used to switch to the internal clock when the S/PDIF source is unavailable.
 
-Every 5 seconds, 
-If the clock is set to S/PDIF< and the clock isn't locked, clock is set to Internal.  
-If the clock is set to internal and S/PDIF input has some input, it will set the clock to S/PDIF.
+The bigger nuisance comes in remembering to restore the S/PDIF clock source when the source is powered up, only recognizing this after recordings have been ruined with timing jitters.
 
-    
-Don't use this code, it's likely dangerous, you might discover a UDP service and get bad input.
+
+## How
+This program works as a client to the focusrite-control(must be running somewhere on your network) server to evaluate the current clock state
+
+Every 5 seconds
+* If the clock is set to S/PDIF< and the clock isn't locked, clock is set to Internal.  
+* If the clock is set to internal and S/PDIF input has some input, it will set the clock to S/PDIF.
+
+### Don't use this code, it's likely dangerous, you might discover a UDP service and get bad input.
