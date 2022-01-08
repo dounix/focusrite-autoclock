@@ -20,3 +20,18 @@ Every 5 seconds
 * If the clock is set to internal and S/PDIF input has some input, it will set the clock to S/PDIF.
 
 ### Don't use this code, it's likely dangerous, you might discover a UDP service and get bad input.
+
+## Building
+go ./src/. -o focusrite-autoclock
+
+## Usage
+
+### Options  
+ -h UDP discovery hostname, defaults to localhost
+### Example 
+#### Discover focusrite control on localhost
+`./focusrite-autoclock`
+#### Discover focusrite control on host named elvis
+`./focusrite-autoclock -h elvis`
+
+

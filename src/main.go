@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -18,12 +19,17 @@ import (
 )
 
 func main() {
-	// log.SetLevel(log.DebugLevel) //TODO change to info
-	log.SetLevel(log.InfoLevel) //TODO change to info
+	log.SetLevel(log.InfoLevel)  //TODO change to info
+	log.SetLevel(log.DebugLevel) //TODO change to info
+
+	udphost := flag.String("h", "localhost", "hostname for initial UDP discovery")
+
+	flag.Parse()
+	log.Debug("hostname set to ", *udphost)
 	valueMap := make(map[int]string)
 	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
 
-	conn := connectTcp()
+	conn := connectTcp(discoverTcpService(*udphost))
 	clientInit(conn)
 
 	go bgKeepAlive(conn) //send keep alives in background, can't image conn is thread safe..
@@ -113,8 +119,8 @@ func decodeFocusriteMessage(payload string) FocusriteMessage {
 	return m
 }
 
-func discoverTcpService() string {
-	const DiscoveryService = "localhost:30096"
+func discoverTcpService(host string) string {
+	DiscoveryService := host + ":30096"
 	const DiscoveryTag = "server-announcement"
 
 	type Serveraccouncement struct {
@@ -124,6 +130,9 @@ func discoverTcpService() string {
 	}
 
 	RemoteAddr, err := net.ResolveUDPAddr("udp", DiscoveryService)
+	if err != nil {
+		log.Fatal(err)
+	}
 	p := bluemonday.UGCPolicy()
 	p.AllowElements(DiscoveryTag)
 
@@ -173,8 +182,8 @@ func discoverTcpService() string {
 	return disco.Hostname + ":" + disco.Port
 }
 
-func connectTcp() *net.TCPConn {
-	serviceName := discoverTcpService()
+func connectTcp(serviceName string) *net.TCPConn {
+
 	tcpAddr, err := net.ResolveTCPAddr("tcp", serviceName)
 	if err != nil {
 		log.Error("resolution failed: ", err.Error())
