@@ -11,6 +11,7 @@ This is a minor annoyance, more so when the focusrite is the primary audio inter
 
 The bigger nuisance comes in remembering to restore the S/PDIF clock source when the source is powered up, only recognizing this after recordings have been ruined with timing jitters.
 
+TLDR; I don't want to fiddle with focusrite control when powering up/down my Axe Fx or Kemper.
 
 ## How
 This program works as a client to the focusrite-control(must be running somewhere on your network) server to evaluate the current clock state
