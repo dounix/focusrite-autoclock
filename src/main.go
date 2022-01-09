@@ -53,7 +53,7 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 		log.Debug("source input spdif meter ID: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
 		log.Debug("clock locked: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
 		log.Debug("clock source: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
-		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID] == "false" &&
+		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID] != "true" &&
 			valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "S/PDIF" {
 			log.Info("Setting clock to Internal")
 			setInternal := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"Internal\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
