@@ -33,7 +33,7 @@ Build for your platform of choice
 Run on any host that can reach focusrite control(on your local network)
 
 ### Approval in focusrite control, allow the remote device in focusrite control under settings, remote devices
-~[](img/approbal.png)
+~[](img/approval.png)
 
 ### Options  
  -h UDP discovery hostname, defaults to localhost
