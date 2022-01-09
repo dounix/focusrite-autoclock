@@ -209,7 +209,10 @@ func connectTcp(serviceName string) *net.TCPConn {
 
 func clientInit(conn *net.TCPConn) {
 	// conn.Write([]byte("Length=000055 <client-details hostname=\"jimsne\" client-key=\"11111111-2042-4050-8FED-B3CA5BABB11D\"/>"))
-	writeMsg(conn, `<client-details hostname="jimsne" client-key="11111111-2042-4050-8FED-B3CA5BABB11D"/>`)
+	myHostname, _ := os.Hostname()
+	log.Debug("hostname: ", myHostname)
+	clientMsg := fmt.Sprintf(`<client-details hostname="focusrite-%s" client-key="11111111-2042-4050-8FED-B3CA5BABB11D"/>`, myHostname)
+	writeMsg(conn, clientMsg)
 
 	// _, err := conn.Write([]byte("Length=000055 <client-details hostname=\"iphone\" client-key=\"11111111-2042-4050-8FED-A3CA5BABB11D\"/>"))
 
