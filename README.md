@@ -32,7 +32,7 @@ Build for your platform of choice
 ## Running
 Run on any host that can reach focusrite control(on your local network)
 
-### Approval in focusrite control, allow the remote device in focusrite control under settings, remote devices
+### Approve in focusrite control, allow the remote device in focusrite control under settings, remote devices
 ![](img/approval.png)
 
 ### Options  
