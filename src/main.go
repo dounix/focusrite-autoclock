@@ -23,11 +23,17 @@ func main() {
 
 	udphost := flag.String("h", "localhost", "hostname for initial UDP discovery")
 	debugPtr := flag.Bool("d", false, "debug enable")
+	tracePtr := flag.Bool("t", false, "trace enable")
 	flag.Parse()
 
-	if *debugPtr == true {
+	if *debugPtr {
 		log.SetLevel(log.DebugLevel)
 	}
+
+	if *tracePtr {
+		log.SetLevel(log.TraceLevel)
+	}
+
 	log.Debug("hostname set to ", *udphost)
 	valueMap := make(map[int]string)
 	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
@@ -60,15 +66,13 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 			writeMsg(conn, setInternal)
 		}
 		spdifLevel, _ := strconv.ParseInt(valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID], 10, 8)
-		//log.Println("spdiflevel:", spdifLevel)
+		log.Debug("spdiflevel:", spdifLevel)
 		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "Internal" &&
 			spdifLevel > -100 {
 			log.Info("Setting clock to S/PDIF")
 			setSpdif := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"S/PDIF\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setSpdif)
 		}
-		// sendKeepAlive(conn)
-		// conn.Write([]byte(`Length=00000d <keep-alive/>`))
 	}
 }
 
@@ -79,10 +83,7 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 	sort.Strings(focusriteStructs)
 	handler := focusriteStructs[len(focusriteStructs)-1]
 	log.Trace("target handler: ", handler)
-	//log.Printf("root message routing %+v", m)
-	//swtich
-	// log.Printf("root message routing %+v", m.DeviceArrival.XMLName.Local)
-	// log.Printf("root message routing %+v", m)
+
 	switch handler {
 	case "client-details":
 		log.Debug("get the client deets")
@@ -105,6 +106,9 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 	case "approval":
 		log.Debug("check approval")
 		log.Debug("approval message: ", m.Approval)
+		if m.Approval.Authorised == "false" {
+			log.Error("Please authorize in Focusrite app")
+		}
 
 	default:
 		log.Warn("unknown handler: ", handler)
@@ -117,8 +121,6 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 func decodeFocusriteMessage(payload string) FocusriteMessage {
 	var m FocusriteMessage
 	xml.Unmarshal([]byte(payload), &m)
-	// sort.Slice(deviceset.Item, func(i, j int) bool {
-	// })
 	return m
 }
 
@@ -177,16 +179,12 @@ func discoverTcpService(host string) string {
 
 	log.Info("UDP Server : ", addr)
 	log.Debug("Received from UDP server : ", string(buffer[:n]))
-	//	xmlmessage := strings.SplitN(string(buffer[:n]), " ", 1)
 	xmlmessage := strings.SplitN(string(buffer[:n]), " ", 2)[1]
 	log.Debug("udp xml message: ", xmlmessage)
-	//tokenizer := html.NewTokenizer(xmlmessage)
 
 	var disco Serveraccouncement
 
 	xml.Unmarshal([]byte(xmlmessage), &disco)
-	//	fmt.Println(disco)
-	//	fmt.Printf("%V\n", disco)
 	log.Debug("port: ", disco.Port)
 	log.Debug("hostname: ", disco.Hostname)
 	return disco.Hostname + ":" + disco.Port
@@ -208,14 +206,10 @@ func connectTcp(serviceName string) *net.TCPConn {
 }
 
 func clientInit(conn *net.TCPConn) {
-	// conn.Write([]byte("Length=000055 <client-details hostname=\"jimsne\" client-key=\"11111111-2042-4050-8FED-B3CA5BABB11D\"/>"))
 	myHostname, _ := os.Hostname()
 	log.Debug("hostname: ", myHostname)
-	clientMsg := fmt.Sprintf(`<client-details hostname="focusrite-%s" client-key="11111111-2042-4050-8FED-B3CA5BABB11D"/>`, myHostname)
+	clientMsg := fmt.Sprintf(`<client-details hostname="autoclock-%s" client-key="11111111-2042-4050-8FED-B3CA5BABB11D"/>`, myHostname)
 	writeMsg(conn, clientMsg)
-
-	// _, err := conn.Write([]byte("Length=000055 <client-details hostname=\"iphone\" client-key=\"11111111-2042-4050-8FED-A3CA5BABB11D\"/>"))
-
 }
 
 func bgKeepAlive(conn *net.TCPConn) {
@@ -256,17 +250,15 @@ func readMsg(conn *net.TCPConn) string {
 			log.Error("Read space from server failed:", err.Error())
 			os.Exit(1)
 		}
-		// log.Printf("space is: x%sx", space)
 
-		//log.Println("Length= was matched")
 		blength, err := hex.DecodeString("00" + string(length)) // Length= is a 6 digit hex value, padding to 8 digit string so it can cast to an int32
 		if err != nil {
 			log.Error("hex length decode failed:", err.Error())
 			os.Exit(1)
 		}
-		blength2 := binary.BigEndian.Uint32(blength)
 
-		// log.Printf("blength2 is is %d bytes", blength2)
+		blength2 := binary.BigEndian.Uint32(blength)
+		log.Trace("blength2 bytes: ", blength2)
 
 		payload := make([]byte, blength2)
 		_, err = conn.Read(payload)
