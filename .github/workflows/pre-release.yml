@@ -1,37 +1,39 @@
 ---
-name: "Release"
+name: "pre-release"
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - "develop"
 
 jobs:
-  release:
-    name: "Release"
+  pre-release:
+    name: "Pre Release"
     runs-on: "ubuntu-latest"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.17
+
       - name: Build Linux x64
         env:
           GOOS: linux
           GOARCH: amd64
         run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
-      - name: Build Linux arm64
-        env:
-          GOOS: linux
-          GOARCH: arm64
-        run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
-      - name: Build Linux arm
-        env:
-          GOOS: linux
-          GOARCH: arm
-        run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
+      # - name: Build Linux arm64
+      #   env:
+      #     GOOS: linux
+      #     GOARCH: arm64
+      #   run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
+      # - name: Build Linux arm
+      #   env:
+      #     GOOS: linux
+      #     GOARCH: arm
+      #   run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
       - name: Build Windows x64
         env:
           GOOS: windows
@@ -47,8 +49,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
-          draft: true
-          prerelease: false
-          # title: "Version release"
+          prerelease: true
+          title: "Development Build"
           files: |
             focusrite-autoclock*
