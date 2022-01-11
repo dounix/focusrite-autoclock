@@ -85,7 +85,7 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 
 	switch handler {
 	case "client-details":
-		log.Debug("get the client deets")
+		log.Debug("get the client deets", m.ClientDetails)
 	case "device-arrival":
 		log.Debug("processing arrival")
 		*deviceArrivalMsg = m
