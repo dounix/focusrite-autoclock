@@ -13,9 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/denisbrodbeck/machineid"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/microcosm-cc/bluemonday"
 )
 
 func main() {
@@ -86,35 +85,34 @@ func rootMesssageRouter(conn *net.TCPConn, valueMap map[int]string, deviceArriva
 
 	switch handler {
 	case "client-details":
-		log.Debug("get the client deets")
+		log.Debug("get the client deets", m.ClientDetails)
 	case "device-arrival":
 		log.Debug("processing arrival")
 		*deviceArrivalMsg = m
 		log.Debug("sending subscribe message after receiving device arrival")
-		//conn.Write([]byte(`Length=00002e <device-subscribe devid="1" subscribe="true"/>`))
 		writeMsg(conn, `<device-subscribe devid="1" subscribe="true"/>`)
 	case "keep-alive":
-		log.Debug("received the keepalive")
+		log.Debug("received keepalive message")
 		return
 	case "set":
-		log.Trace("updating the value map")
+		log.Trace("updating value map")
 		for i := range m.DeviceSet.Item {
 			valueMap[m.DeviceSet.Item[i].ID] = m.DeviceSet.Item[i].Value
-			// log.Printf("updating map with device id %d, with value %s", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
+			// log.Trace("updating map with device item, value: ", m.DeviceSet.Item[i].ID, m.DeviceSet.Item[i].Value)
 		}
 
 	case "approval":
 		log.Debug("check approval")
 		log.Debug("approval message: ", m.Approval)
-		if m.Approval.Authorised == "false" {
-			log.Error("Please authorize in Focusrite app")
+		log.Info("approval message: ", m.Approval)
+		hostname, _ := os.Hostname()
+		if m.Approval.Authorised == "false" && m.Approval.Hostname == hostname {
+			log.Error("Please authorize this host in Focusrite app: ", hostname)
 		}
 
 	default:
 		log.Warn("unknown handler: ", handler)
 	}
-
-	return
 
 }
 
@@ -126,10 +124,9 @@ func decodeFocusriteMessage(payload string) FocusriteMessage {
 
 func discoverTcpService(host string) string {
 	DiscoveryService := host + ":30096"
-	const DiscoveryTag = "server-announcement"
 
 	type Serveraccouncement struct {
-		XMLName  xml.Name `xml:DiscoveryTag`
+		XMLName  xml.Name `xml:"server-announcement"`
 		Port     string   `xml:"port,attr"`
 		Hostname string   `xml:"hostname,attr"`
 	}
@@ -138,8 +135,6 @@ func discoverTcpService(host string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	p := bluemonday.UGCPolicy()
-	p.AllowElements(DiscoveryTag)
 
 	conn, err := net.DialUDP("udp", nil, RemoteAddr)
 
@@ -156,10 +151,7 @@ func discoverTcpService(host string) string {
 	command := `<client-discovery app="SAFFIRE-CONTROL" version="4" device="iOS"/>`
 	log.Trace("Length is: ", len(command))
 	fullmessage := fmt.Sprintf("Length=%06x %s", len(command), command)
-	log.Trace("before sanitize")
-	log.Trace(p.Sanitize(fullmessage))
-	log.Trace("after sanitize")
-	log.Trace(fullmessage)
+	log.Trace("client discovery full message: ", fullmessage)
 
 	_, err = conn.Write([]byte(fullmessage))
 	if err != nil {
@@ -181,9 +173,7 @@ func discoverTcpService(host string) string {
 	log.Debug("Received from UDP server : ", string(buffer[:n]))
 	xmlmessage := strings.SplitN(string(buffer[:n]), " ", 2)[1]
 	log.Debug("udp xml message: ", xmlmessage)
-
 	var disco Serveraccouncement
-
 	xml.Unmarshal([]byte(xmlmessage), &disco)
 	log.Debug("port: ", disco.Port)
 	log.Debug("hostname: ", disco.Hostname)
@@ -206,9 +196,14 @@ func connectTcp(serviceName string) *net.TCPConn {
 }
 
 func clientInit(conn *net.TCPConn) {
-	myHostname, _ := os.Hostname()
-	log.Debug("hostname: ", myHostname)
-	clientMsg := fmt.Sprintf(`<client-details hostname="autoclock-%s" client-key="11111111-2042-4050-8FED-B3CA5BABB11D"/>`, myHostname)
+	// myHostname, _ := os.Hostname()
+	// log.Debug("hostname: ", myHostname)
+	hostname, _ := os.Hostname()
+	machineId, _ := machineid.ID()
+	clientMsg := fmt.Sprintf(`<client-details hostname="%s" client-key="%s"/>`, hostname, machineId)
+	// clientMsg := fmt.Sprintf(`<client-details hostname="%s" client-key="22222222-2042-4050-8FED-B3CA5BABB11D"/>`, hostname)
+
+	log.Debug("clientMsg: ", clientMsg)
 	writeMsg(conn, clientMsg)
 }
 
