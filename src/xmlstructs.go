@@ -3,7 +3,7 @@ package main
 import "encoding/xml"
 
 type FocusriteMessage struct {
-	XMLName xml.Name `"xml:"focusritemessage"`
+	XMLName xml.Name `xml:"focusritemessage"`
 	//These are all really top level elements, but the response is wrapped in a dummy focusritemessage xml for unmarshalling
 
 	KeepAlive struct {
