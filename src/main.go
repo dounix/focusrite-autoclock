@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"sort"
@@ -15,40 +16,71 @@ import (
 
 	"github.com/denisbrodbeck/machineid"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/getlantern/systray"
+	// "github.com/getlantern/systray/example/icon"
+	// "github.com/skratchdot/open-golang/open"
 )
 
 func main() {
-	log.SetLevel(log.InfoLevel) //TODO change to info
+	log.SetLevel(log.InfoLevel)
+	log.SetOutput(os.Stdout)
 
-	udphost := flag.String("h", "localhost", "hostname for initial UDP discovery")
-	debugPtr := flag.Bool("d", false, "debug enable")
-	tracePtr := flag.Bool("t", false, "trace enable")
-	flag.Parse()
-
-	if *debugPtr {
-		log.SetLevel(log.DebugLevel)
+	onExit := func() {
+		now := time.Now()
+		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
 	}
 
-	if *tracePtr {
-		log.SetLevel(log.TraceLevel)
-	}
+	systray.Run(onReady, onExit)
 
-	log.Debug("hostname set to ", *udphost)
-	valueMap := make(map[int]string)
-	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
-
-	conn := connectTcp(discoverTcpService(*udphost))
-	clientInit(conn)
-
-	go bgKeepAlive(conn) //send keep alives in background, can't image conn is thread safe..
-
-	go bgWatchClock(conn, valueMap, &deviceArrivalMsg) //watch the clock and make sure it's what we want..
-
-	for {
-		rootMesssageRouter(conn, valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
-		time.Sleep(5 * time.Millisecond)
-	}
 } //end main
+
+func onReady() {
+	// systray.SetTemplateIcon(greyicon.Data, greyicon.Data)
+	systray.SetTemplateIcon(Datagrey, Datagrey)
+	systray.SetTitle("focusrite-autoclock")
+	systray.SetTooltip("Focusrite clock status")
+	mQuitOrig := systray.AddMenuItem("Quit", "Quit the whole app")
+
+	go func() {
+
+		udphost := flag.String("h", "localhost", "hostname for initial UDP discovery")
+		debugPtr := flag.Bool("d", false, "debug enable")
+		tracePtr := flag.Bool("t", false, "trace enable")
+		flag.Parse()
+
+		if *debugPtr {
+			log.SetLevel(log.DebugLevel)
+		}
+
+		if *tracePtr {
+			log.SetLevel(log.TraceLevel)
+		}
+
+		log.Debug("hostname set to ", *udphost)
+		valueMap := make(map[int]string)
+		var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
+
+		conn := connectTcp(discoverTcpService(*udphost))
+		clientInit(conn)
+
+		go bgKeepAlive(conn) //send keep alives in background, can't image conn is thread safe..
+
+		go bgWatchClock(conn, valueMap, &deviceArrivalMsg) //watch the clock and make sure it's what we want..
+
+		for {
+			rootMesssageRouter(conn, valueMap, &deviceArrivalMsg, decodeFocusriteMessage(readMsg(conn)))
+			time.Sleep(5 * time.Millisecond)
+		}
+	}()
+
+	go func() {
+		<-mQuitOrig.ClickedCh
+		fmt.Println("Requesting quit")
+		systray.Quit()
+		fmt.Println("Finished quitting")
+	}()
+}
 
 func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *FocusriteMessage) {
 	// log.Println("running watchclock")
@@ -58,9 +90,12 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 		log.Debug("source input spdif meter ID: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Inputs.SpdifRca[0].Meter.ID])
 		log.Debug("clock locked: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID])
 		log.Debug("clock source: ", valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID])
+
 		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID] != "true" &&
 			valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "S/PDIF" {
 			log.Info("Setting clock to Internal")
+			systray.SetTooltip("Setting Clock to Internal")
+			systray.SetTemplateIcon(Datared, Datared)
 			setInternal := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"Internal\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setInternal)
 		}
@@ -69,6 +104,9 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "Internal" &&
 			spdifLevel > -100 {
 			log.Info("Setting clock to S/PDIF")
+			systray.SetTemplateIcon(Datablue, Datablue)
+			systray.SetTooltip("Setting clock to S/PDIF")
+
 			setSpdif := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"S/PDIF\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setSpdif)
 		}
