@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"sort"
@@ -27,8 +26,9 @@ func main() {
 	log.SetOutput(os.Stdout)
 
 	onExit := func() {
-		now := time.Now()
-		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		//	now := time.Now()
+		//	ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		log.Debug("exiting due to menu selection")
 	}
 
 	systray.Run(onReady, onExit)
@@ -93,8 +93,8 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 
 		if valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.Locked.ID] != "true" &&
 			valueMap[deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID] == "S/PDIF" {
-			log.Info("Setting clock to Internal")
-			systray.SetTooltip("Setting Clock to Internal")
+			log.Info("clock to Internal")
+			systray.SetTooltip("Clock: Internal")
 			systray.SetTemplateIcon(Datared, Datared)
 			setInternal := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"Internal\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setInternal)
@@ -105,7 +105,7 @@ func bgWatchClock(conn *net.TCPConn, valueMap map[int]string, deviceArrivalMsg *
 			spdifLevel > -100 {
 			log.Info("Setting clock to S/PDIF")
 			systray.SetTemplateIcon(Datablue, Datablue)
-			systray.SetTooltip("Setting clock to S/PDIF")
+			systray.SetTooltip("Clock: S/PDIF")
 
 			setSpdif := fmt.Sprintf("<set devid=\"1\"><item id=\"%d\" value=\"S/PDIF\"/></set>", deviceArrivalMsg.DeviceArrival.Device.Clocking.ClockSource.ID)
 			writeMsg(conn, setSpdif)
