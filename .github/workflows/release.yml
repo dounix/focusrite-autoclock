@@ -37,6 +37,11 @@ jobs:
           GOOS: windows
           GOARCH: amd64
         run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH.exe ./src/.
+      - name: Build Windows x64 debug
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -v -ldflags "-X main.DebugMode=true" -o focusrite-autoclock-$GOOS-$GOARCH-debug.exe ./src/.
       - name: Build MacOS
         env:
           GOOS: darwin

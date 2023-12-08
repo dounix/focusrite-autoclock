@@ -17,6 +17,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	DebugMode = "false"
+)
+	
+
 func main() {
 	log.SetLevel(log.InfoLevel) //TODO change to info
 
@@ -26,6 +31,10 @@ func main() {
 	flag.Parse()
 
 	if *debugPtr {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	if DebugMode == "true" {
 		log.SetLevel(log.DebugLevel)
 	}
 
