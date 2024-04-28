@@ -37,6 +37,7 @@ Run on any host that can reach focusrite control(on your local network)
 
 ### Options  
  -h UDP discovery hostname, defaults to localhost
+ -i ignore hostname returned by the udp discovery(use localhost)
 ### Examples 
 #### Discover focusrite control on localhost
 `./focusrite-autoclock`
