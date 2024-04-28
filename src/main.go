@@ -190,8 +190,7 @@ func discoverTcpService(host string, ignoreDiscoveredHost bool) string {
 	log.Debug("port: ", disco.Port)
 	log.Debug("hostname: ", disco.Hostname)
 
-	log.Debug("ignoreDiscoveredHost: ", ignoreDiscoveredHost)
-	if ignoreDiscoveredHost == true {
+	if ignoreDiscoveredHost {
 		log.Debug("ignoring discovered host, using localhost")
 		return "localhost:" + disco.Port
 	}
@@ -203,6 +202,7 @@ func connectTcp(serviceName string) *net.TCPConn {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", serviceName)
 	if err != nil {
 		log.Error("resolution failed: ", err.Error())
+		log.Error("You can use the -i option to ignore the hostname from focusrite control, and use localhost instead")
 		os.Exit(1)
 	}
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
