@@ -47,6 +47,11 @@ jobs:
           GOOS: darwin
           GOARCH: amd64
         run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
+      - name: Build MacOS
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+        run: go build -v -o focusrite-autoclock-$GOOS-$GOARCH ./src/.
       - name: Autorelease
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
