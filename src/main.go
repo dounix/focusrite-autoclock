@@ -20,14 +20,18 @@ import (
 var (
 	DebugMode = "false"
 )
-	
 
 func main() {
 	log.SetLevel(log.InfoLevel) //TODO change to info
 
 	udphost := flag.String("h", "localhost", "hostname for initial UDP discovery")
+	//ignore the discovery host hostname, and use localhost
+	// x := flag.Bool("i", false, "ignore hostname from discovery and use localhost")
+	ignoreDiscoveredHost := flag.Bool("i", false, "ignore hostname from discovery and use localhost")
+
 	debugPtr := flag.Bool("d", false, "debug enable")
 	tracePtr := flag.Bool("t", false, "trace enable")
+
 	flag.Parse()
 
 	if *debugPtr {
@@ -46,9 +50,8 @@ func main() {
 	valueMap := make(map[int]string)
 	var deviceArrivalMsg FocusriteMessage //save the arrival struct to this global!@!
 
-	conn := connectTcp(discoverTcpService(*udphost))
+	conn := connectTcp(discoverTcpService(*udphost, *ignoreDiscoveredHost))
 	clientInit(conn)
-
 	go bgKeepAlive(conn) //send keep alives in background, can't image conn is thread safe..
 
 	go bgWatchClock(conn, valueMap, &deviceArrivalMsg) //watch the clock and make sure it's what we want..
@@ -131,7 +134,7 @@ func decodeFocusriteMessage(payload string) FocusriteMessage {
 	return m
 }
 
-func discoverTcpService(host string) string {
+func discoverTcpService(host string, ignoreDiscoveredHost bool) string {
 	DiscoveryService := host + ":30096"
 
 	type Serveraccouncement struct {
@@ -186,6 +189,12 @@ func discoverTcpService(host string) string {
 	xml.Unmarshal([]byte(xmlmessage), &disco)
 	log.Debug("port: ", disco.Port)
 	log.Debug("hostname: ", disco.Hostname)
+
+	log.Debug("ignoreDiscoveredHost: ", ignoreDiscoveredHost)
+	if ignoreDiscoveredHost == true {
+		log.Debug("ignoring discovered host, using localhost")
+		return "localhost:" + disco.Port
+	}
 	return disco.Hostname + ":" + disco.Port
 }
 
